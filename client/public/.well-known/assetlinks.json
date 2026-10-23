@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.janeshatrey.paydayly",
+        "sha256_cert_fingerprints": ["C6:DD:97:C8:7E:D7:7F:58:92:0A:14:BD:26:1E:67:6A:48:34:ED:C4:44:C4:C8:0C:4B:83:C7:20:4F:90:8E:1A"]
+      }
+    }]
