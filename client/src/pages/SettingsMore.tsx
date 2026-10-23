@@ -88,7 +88,7 @@ export function AccountsSection() {
     event.preventDefault()
     setBusy(true)
     try {
-      await api.post("/accounts", { name, kind, spending: kind !== "loan" })
+      await api.post("/accounts", { name, kind, spending: kind !== "loan" && kind !== "card" })
       setName("")
       await refresh()
       toast.success(t("Account added"))

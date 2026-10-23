@@ -25,7 +25,7 @@ export interface AppConfig {
   trustProxy?: string | number | boolean
   logResetLinks?: boolean
   publicUrl?: string
-  onResetToken?: (email: string, token: string) => void
+  onResetToken?: (email: string, token: string) => unknown | Promise<unknown>
   ai?: AiConfig
 }
 

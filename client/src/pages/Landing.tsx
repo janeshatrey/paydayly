@@ -47,7 +47,7 @@ const COPY = {
     trust: ["No bank login or screen scraping", "Your data is private to your account", "We never sell your data"],
     statsTitle: "What Paydayly keeps track of",
     stats: [
-      { value: 3, suffix: "", label: "statement formats: CSV, XLS and XLSX from any bank" },
+      { value: 3, suffix: "", label: "statement formats: CSV, XLS and XLSX; review required" },
       { value: 3, suffix: "", label: "commitment cycles: monthly, quarterly, yearly" },
       { value: 100, suffix: "%", label: "of figures computed by Paydayly's own engine" },
       { value: 2, suffix: "", label: "languages: English and Hindi" },
@@ -58,7 +58,7 @@ const COPY = {
       { icon: Wallet, title: "Available until payday", body: "Salary minus rent, EMIs, bills, SIPs and goal money, with every line shown. Marked as an estimate until you confirm your balance." },
       { icon: Scale, title: "Can I afford this?", body: "Type an amount and a date. See what is left, which bill it squeezes, your new daily number and what happens if payday is late." },
       { icon: HandCoins, title: "Money owed back", body: "Paid for the group? The full amount leaves your account, and what friends owe only counts once it arrives." },
-      { icon: FileSpreadsheet, title: "Statements from any bank", body: "Upload the CSV, XLS or XLSX your bank gives you. Paydayly finds the transaction table, skips the bank info and totals, and checks every row against your closing balance." },
+      { icon: FileSpreadsheet, title: "Bank statement import", body: "Upload the CSV, XLS or XLSX your bank gives you. Paydayly finds the transaction table, skips the bank info and totals, and checks running balances when the file includes them." },
       { icon: Repeat, title: "Quarterly and yearly bills", body: "Insurance, school fees or a yearly subscription get a monthly share set aside, and are only due in the month you pick." },
       { icon: PieChart, title: "Sorted for Indian spending", body: "Swiggy, Zomato, Blinkit, Zepto, Uber, Ola and hundreds of UPI merchants are categorised for you." },
       { icon: BellRing, title: "Alerts that matter", body: "Bills due in the next three days, crossing a category limit, or a charge that looks like a duplicate." },
@@ -82,9 +82,9 @@ const COPY = {
     faqs: [
       { q: "What can the AI money helper do?", a: "Ask things like “can I buy a ₹3,000 jacket this week?” or type “kal raat dominos 640, aaj rapido 85” and it turns them into entries for you to check. If the AI is ever unavailable, Paydayly falls back to its own rules so nothing breaks." },
       { q: "Does the AI decide how much I can spend?", a: "No. Every number comes from Paydayly's own engine. The AI only reads loosely worded questions and entries, and an answer containing a figure Paydayly did not produce is thrown away." },
-      { q: "How are quarterly or yearly bills handled?", a: "Paydayly sets aside one-third or one-twelfth each month and only treats the bill as due in the month you choose, so a yearly premium does not wreck one month." },
+      { q: "How are quarterly or yearly bills handled?", a: "Paydayly plans a monthly share between due dates. In the due month, the unpaid bill is protected in full. Confirm your closing balance so available cash is checked too." },
       { q: "What if my salary is late?", a: "The Afford screen can show what happens if payday slips by five days, and bills due in that gap are counted." },
-      { q: "Which banks are supported?", a: "Any bank. Upload the CSV, XLS or XLSX statement from net banking, even ones with bank details above the table or totals below it. If a column is not recognised, you can pick it yourself before importing." },
+      { q: "Which banks are supported?", a: "Common CSV, XLS and XLSX layouts are supported, but not every bank export has been verified. Review dates, amounts, account and balance checks before importing. You can map columns manually; unsupported files may need conversion." },
       { q: "Is my data safe?", a: "Your data is private to your account and we never sell it. Passwords are stored as bcrypt hashes, sessions use httpOnly cookies over HTTPS, and Paydayly never asks for bank logins." },
       { q: "Is this financial advice?", a: "No. Paydayly is a budgeting aid that shows its working. Decisions are yours." },
     ],
@@ -123,7 +123,7 @@ const COPY = {
     trust: ["बैंक लॉगिन की ज़रूरत नहीं", "आपका डेटा सिर्फ़ आपके अकाउंट में", "हम आपका डेटा कभी नहीं बेचते"],
     statsTitle: "Paydayly किन चीज़ों का ध्यान रखता है",
     stats: [
-      { value: 3, suffix: "", label: "स्टेटमेंट फ़ॉर्मेट: किसी भी बैंक की CSV, XLS और XLSX" },
+      { value: 3, suffix: "", label: "स्टेटमेंट फ़ॉर्मेट: CSV, XLS और XLSX; पहले जाँचें" },
       { value: 3, suffix: "", label: "खर्च के चक्र: मासिक, तिमाही, सालाना" },
       { value: 100, suffix: "%", label: "आंकड़े Paydayly के अपने इंजन से" },
       { value: 2, suffix: "", label: "भाषाएं: अंग्रेज़ी और हिंदी" },
@@ -134,7 +134,7 @@ const COPY = {
       { icon: Wallet, title: "सैलरी तक उपलब्ध", body: "सैलरी में से किराया, EMI, बिल, SIP और लक्ष्य का पैसा, हर लाइन के साथ। बैलेंस कन्फर्म करने तक इसे अंदाज़ा बताया जाता है।" },
       { icon: Scale, title: "क्या मैं यह ले सकता हूँ?", body: "रकम और तारीख डालें। देखें कितना बचेगा, कौन सा बिल दबेगा, रोज़ का नया हिसाब और सैलरी देर से आए तो क्या होगा।" },
       { icon: HandCoins, title: "वापस मिलने वाला पैसा", body: "ग्रुप का बिल भरा? पूरी रकम खाते से जाती है, दोस्तों का हिस्सा लौटने पर ही गिना जाता है।" },
-      { icon: FileSpreadsheet, title: "किसी भी बैंक का स्टेटमेंट", body: "बैंक से मिली CSV, XLS या XLSX अपलोड करें। Paydayly ट्रांज़ैक्शन टेबल खुद ढूँढता है, बैंक की जानकारी और टोटल छोड़ता है, और हर लाइन को क्लोज़िंग बैलेंस से मिलाता है।" },
+      { icon: FileSpreadsheet, title: "बैंक स्टेटमेंट इम्पोर्ट", body: "बैंक से मिली CSV, XLS या XLSX अपलोड करें। Paydayly ट्रांज़ैक्शन टेबल खुद ढूँढता है, बैंक की जानकारी और टोटल छोड़ता है, और हर लाइन को क्लोज़िंग बैलेंस से मिलाता है।" },
       { icon: Repeat, title: "तिमाही और सालाना बिल", body: "बीमा, स्कूल फ़ीस या सालाना सब्सक्रिप्शन का हर महीने हिस्सा अलग रखा जाता है, और बिल सिर्फ़ चुने हुए महीने में देय होता है।" },
       { icon: PieChart, title: "भारतीय खर्चों के हिसाब से", body: "Swiggy, Zomato, Blinkit, Zepto, Uber, Ola और सैकड़ों UPI मर्चेंट अपने आप कैटेगरी में।" },
       { icon: BellRing, title: "काम की सूचनाएं", body: "तीन दिन में आने वाले बिल, कैटेगरी की सीमा पार, या डुप्लिकेट लगने वाला चार्ज।" },
@@ -158,9 +158,9 @@ const COPY = {
     faqs: [
       { q: "AI मनी हेल्पर क्या करता है?", a: "पूछें “क्या मैं इस हफ़्ते ₹3,000 की जैकेट ले सकता हूँ?” या लिखें “kal raat dominos 640, aaj rapido 85”, और वह इन्हें आपके चेक करने के लिए एंट्री बना देता है। AI कभी उपलब्ध न हो तो Paydayly अपने नियमों से काम चलाता है, कुछ नहीं टूटता।" },
       { q: "क्या AI तय करता है कि मैं कितना खर्च कर सकता हूँ?", a: "नहीं। हर नंबर Paydayly के अपने इंजन से आता है। AI सिर्फ़ ढीले-ढाले सवाल और एंट्री पढ़ता है, और जिस जवाब में Paydayly का न बनाया आंकड़ा हो वह हटा दिया जाता है।" },
-      { q: "तिमाही या सालाना बिल कैसे संभलते हैं?", a: "Paydayly हर महीने एक-तिहाई या बारहवाँ हिस्सा अलग रखता है और बिल सिर्फ़ आपके चुने महीने में देय मानता है, ताकि सालाना प्रीमियम एक महीना न बिगाड़े।" },
+      { q: "तिमाही या सालाना बिल कैसे संभलते हैं?", a: "Paydayly बाकी महीनों में मासिक हिस्सा अलग रखने की योजना बनाता है। देय महीने में पूरे बकाया बिल की रकम सुरक्षित रखी जाती है। उपलब्ध कैश जाँचने के लिए क्लोज़िंग बैलेंस कन्फर्म करें।" },
       { q: "अगर सैलरी देर से आए?", a: "Afford स्क्रीन दिखा सकती है कि सैलरी पाँच दिन खिसके तो क्या होगा, और उस बीच के बिल गिने जाते हैं।" },
-      { q: "कौन से बैंक चलते हैं?", a: "कोई भी बैंक। नेट बैंकिंग से मिली CSV, XLS या XLSX अपलोड करें, ऊपर बैंक की जानकारी या नीचे टोटल हों तब भी। कोई कॉलम न पहचाना जाए तो इम्पोर्ट से पहले खुद चुन सकते हैं।" },
+      { q: "कौन से बैंक चलते हैं?", a: "सामान्य CSV, XLS और XLSX फ़ॉर्मेट चलते हैं, लेकिन हर बैंक का फ़ॉर्मेट जाँचा नहीं गया है। इम्पोर्ट से पहले खाता, तारीखें, रकम और बैलेंस जाँचें। जरूरत हो तो कॉलम खुद चुनें।" },
       { q: "क्या मेरा डेटा सुरक्षित है?", a: "आपका डेटा सिर्फ़ आपके अकाउंट में है और हम उसे कभी नहीं बेचते। पासवर्ड bcrypt हैश के रूप में रखे जाते हैं, सेशन HTTPS पर httpOnly कुकी से चलते हैं, और Paydayly कभी बैंक लॉगिन नहीं माँगता।" },
       { q: "क्या यह वित्तीय सलाह है?", a: "नहीं। Paydayly बजट में मदद करता है और अपना हिसाब दिखाता है। फ़ैसले आपके।" },
     ],
@@ -244,6 +244,10 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   function startTour() {
+    if (!user) {
+      navigate("/tour")
+      return
+    }
     try {
       sessionStorage.setItem("paydayly-tour-pending", "1")
     } catch {

@@ -161,7 +161,8 @@ function matchCommitments(
     }
     const sameKind = items.filter((item) => item.kind === kindOf(tx))
     const pool = sameKind.length ? sameKind : items.filter((item) => item.kind === "other")
-    const target = pool.find((item) => nameHit(item, tx)) ?? pool[0]
+    const matches = pool.filter((item) => nameHit(item, tx))
+    const target = matches.length === 1 ? matches[0] : pool.length === 1 ? pool[0] : undefined
     if (!target) unmatchedPaise += signed
     else actual.set(target.id, (actual.get(target.id) ?? 0) + signed)
   }
@@ -173,14 +174,15 @@ function matchCommitments(
     const dueDate = candidate && (!periodic || dueInMonth(item, Number(candidate.slice(5, 7)))) ? candidate : null
     const mark = context.billMarks.find((entry) => entry.commitmentId === item.id && entry.cycleStart === cycle.start)
     let status: BillStatus
-    if (spent > 0 || mark?.status === "paid") status = "paid"
+    if (spent >= item.amountPaise || mark?.status === "paid") status = "paid"
     else if (mark?.status === "skipped") status = "skipped"
-    else if (!periodic && dueDate && assumedPaidBefore && dueDate < assumedPaidBefore) status = "paid"
+    else if (spent === 0 && !periodic && dueDate && assumedPaidBefore && dueDate < assumedPaidBefore) status = "paid"
     else if (dueDate === asOf) status = "due-today"
     else if (dueDate && dueDate < asOf) status = "overdue"
     else status = "upcoming"
     const assumed = status === "paid" && spent === 0 && mark?.status !== "paid"
-    const reservedPaise = status === "skipped" ? 0 : status === "paid" ? (assumed ? planned : spent) : Math.max(planned, spent)
+    const dueThisCycle = periodic && dueDate ? item.amountPaise : planned
+    const reservedPaise = status === "skipped" ? Math.max(spent, 0) : status === "paid" ? (assumed ? planned : spent) : Math.max(dueThisCycle, spent)
     return {
       id: item.id,
       name: item.name,
@@ -278,12 +280,16 @@ export function accountCycle(
       .filter((item) => item.goalId === goal.id && inRange(item.date))
       .reduce((sum, item) => sum + item.amountPaise, 0)
       + inCycle.filter((tx) => tx.goalId === goal.id && tx.direction === "debit").reduce((sum, tx) => sum + tx.amountPaise, 0)
+    const remaining = Math.max(goal.targetPaise - goal.savedPaise, 0)
+    // savedPaise already includes this cycle's allocations. Preserve money contributed
+    // this cycle, but do not promise another contribution after the target is reached.
+    const monthlyPaise = Math.min(goal.monthlyPaise, remaining + Math.max(contributedPaise, 0))
     return {
       id: goal.id,
       name: goal.name,
-      monthlyPaise: goal.monthlyPaise,
+      monthlyPaise,
       contributedPaise,
-      reservedPaise: Math.max(goal.monthlyPaise, contributedPaise),
+      reservedPaise: Math.max(monthlyPaise, contributedPaise),
     }
   })
   const goalsPaise = goals.reduce((sum, goal) => sum + goal.reservedPaise, 0)

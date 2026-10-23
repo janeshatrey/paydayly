@@ -19,7 +19,7 @@ Original app built by the team; an AI assistant was used for code review, bug fi
 - Money owed back: mark part of a payment as owed by a friend, link repayments, and keep expected money separate from money you have
 - Quarterly and yearly commitments with a due month
 - Password reset, active sessions with sign-out, backup and restore, import undo and a change history
-- Statement import from any bank: CSV, XLS (including HTML-style .xls exports) and XLSX. Paydayly finds the header row, skips bank-info and summary lines, joins wrapped descriptions, handles withdrawal/deposit columns or a single amount with Dr/Cr, and reads most date formats. Automatic column mapping with a confidence score and manual override, duplicate detection, a review list, a closing-balance check and a reconciliation summary
+- Statement import with preview and manual column mapping: CSV, XLS (including HTML-style .xls exports) and XLSX. Paydayly finds the header row, skips bank-info and summary lines, joins wrapped descriptions, handles withdrawal/deposit columns or a single amount with Dr/Cr, and reads most date formats. Automatic column mapping with a confidence score and manual override, duplicate detection, a review list, a closing-balance check and a reconciliation summary
 - Dashboard with a "safe to spend today" figure, spending trend, category breakdown, upcoming bills, alerts, budgets and goals
 - Month view with daily spending chart, calendar heatmap, categories and top merchants
 - Activity list with search, filters, manual entries, editing, category rules and CSV export
@@ -68,6 +68,8 @@ npm run typecheck
 
 ## Configuration
 
+For the accounting fixes, data migration, email setup and production verification steps, read [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md). Balance confirmation now uses the previous day's closing balance, not an intraday bank-app balance. Existing users need to reconfirm after this migration.
+
 | Variable          | Default        | Purpose                                                    |
 |-------------------|----------------|------------------------------------------------------------|
 | `PORT`            | `4000`         | API port                                                   |
@@ -77,6 +79,8 @@ npm run typecheck
 | `NODE_ENV`        | -              | `production` tightens the login rate limit                 |
 | `TRUST_PROXY`     | -              | Set only behind a reverse proxy you control                |
 | `PUBLIC_URL`      | -              | Base URL used in password reset links                      |
+| `RESEND_API_KEY`  | -              | Server-side HTTPS email delivery key for password resets   |
+| `MAIL_FROM`       | -              | Verified sender address for password-reset emails          |
 | `LOG_RESET_LINKS` | `false`        | Print reset links to the server log (local use, no mail server) |
 | `GROQ_API_KEY`    | -              | Key for the AI money helper                                |
 | `GROQ_MODEL`      | `openai/gpt-oss-120b` | Groq model used by the AI money helper                    |

@@ -102,7 +102,7 @@ export function ImportDialog({ open, onClose, onImported }: { open: boolean; onC
       } else {
         text = await picked.text()
       }
-      const data = await api.post<Preview>("/import/preview", { csv: text })
+      const data = await api.post<Preview>("/import/preview", { csv: text, accountId: accountId || null })
       setFile({ name: picked.name, text, format })
       setPreview(data)
       setMapping({ ...EMPTY_MAPPING, ...(data.mapping ?? {}) })
@@ -139,14 +139,18 @@ export function ImportDialog({ open, onClose, onImported }: { open: boolean; onC
     }
   }
 
-  async function remap(next: CsvMapping) {
+  async function remap(next: CsvMapping, nextAccount = accountId) {
     setMapping(next)
     if (!file || !next.date || !next.narration || (!next.debit && !next.credit)) return
+    setBusy(true)
     try {
-      const data = await api.post<Preview>("/import/preview", { csv: file.text, mapping: clean(next) })
+      const data = await api.post<Preview>("/import/preview", { csv: file.text, mapping: clean(next), accountId: nextAccount || null })
       setPreview(data)
     } catch (error) {
+      setPreview(null)
       toast.error((error as Error).message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -165,7 +169,7 @@ export function ImportDialog({ open, onClose, onImported }: { open: boolean; onC
   )
 
   return (
-    <Modal open={open} onClose={close} title={t("Import a bank statement")} description={t("Upload the CSV, XLS or XLSX statement from any bank's net banking.")} wide>
+    <Modal open={open} onClose={close} title={t("Import a bank statement")} description={t("Upload a CSV, XLS or XLSX bank statement. Review the account, dates and amounts before importing.")} wide>
       {result ? (
         <div className="py-4 text-center">
           <CheckCircle2 className="mx-auto size-12 text-ok" />
@@ -264,8 +268,8 @@ export function ImportDialog({ open, onClose, onImported }: { open: boolean; onC
           </div>
           {accounts.length > 0 && (
             <Field label={t("Which account is this statement for?")}>
-              <Select value={accountId} onChange={(event) => setAccountId(event.target.value)}>
-                <option value="">{t("Not sure")}</option>
+              <Select value={accountId} disabled={busy} onChange={(event) => { setAccountId(event.target.value); void remap(mapping, event.target.value) }}>
+                <option value="">{t("Main account")}</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {t(account.name)}

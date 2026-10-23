@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { z } from "zod"
-import type { DB } from "../db"
+import { recoverSettlementAllocations, type DB } from "../db"
 import { userOf } from "../lib/auth"
 import { HttpError } from "../lib/http"
 import { newId } from "../lib/ids"
@@ -21,6 +21,7 @@ const TABLES = [
   "goal_allocations",
   "receivables",
   "bill_marks",
+  "settlement_allocations",
 ] as const
 
 const REFERENCES = ["account_id", "counter_account_id", "commitment_id", "goal_id", "receivable_id", "refund_of_id", "import_id", "tx_id"]
@@ -86,6 +87,7 @@ export function restoreBackup(db: DB, userId: string, data: z.infer<typeof resto
       if (value !== null && typeof value === "object") continue
       db.prepare(`UPDATE profiles SET ${field} = ? WHERE user_id = ?`).run(value as never, userId)
     }
+    recoverSettlementAllocations(db)
   })()
   return count
 }

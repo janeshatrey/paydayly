@@ -29,6 +29,7 @@ export function accountBalances(transactions: Transaction[], context: MoneyConte
   return context.accounts.map((account) => {
     const latest = context.confirmations
       .filter((entry) => entry.accountId === account.id && entry.date <= asOf)
+      .reverse()
       .sort((a, b) => b.date.localeCompare(a.date))[0]
     if (!latest) {
       if (account.kind === "card" || account.kind === "loan") {
@@ -62,7 +63,7 @@ export function confirmedCash(transactions: Transaction[], context: MoneyContext
   const primary = primaryAccountId(context.accounts)
   const main = balances.find((entry) => entry.account.id === primary)
   if (!main?.confirmed) return null
-  const spending = balances.filter((entry) => entry.account.spending && entry.confirmed && entry.balancePaise !== null)
+  const spending = balances.filter((entry) => (entry.account.kind === "bank" || entry.account.kind === "cash") && entry.account.spending && entry.confirmed && entry.balancePaise !== null)
   return {
     cashPaise: spending.reduce((sum, entry) => sum + (entry.balancePaise ?? 0), 0),
     confirmedOn: spending.reduce((oldest, entry) => (entry.confirmed!.date < oldest ? entry.confirmed!.date : oldest), main.confirmed.date),

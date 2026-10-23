@@ -111,8 +111,9 @@ export function authRoutes(db: DB, config: AppConfig): Router {
     res.json({ user })
   })
 
-  router.post("/forgot", limiter, (req, res) => {
+  router.post("/forgot", limiter, async (req, res) => {
     const input = body(forgotSchema, req)
+    if (!config.onResetToken && !config.logResetLinks) throw new HttpError(503, "Password recovery is not configured yet. Please contact the site owner.")
     const user = db.prepare("SELECT id FROM users WHERE email = ?").get(input.email.toLowerCase()) as { id: string } | undefined
     if (user) {
       const token = crypto.randomBytes(32).toString("base64url")
@@ -122,7 +123,13 @@ export function authRoutes(db: DB, config: AppConfig): Router {
       if (config.logResetLinks) {
         console.log(`Password reset link for ${input.email.toLowerCase()}: ${config.publicUrl ?? "http://localhost:5173"}/reset?token=${token}`)
       }
-      config.onResetToken?.(input.email.toLowerCase(), token)
+      try {
+        await config.onResetToken?.(input.email.toLowerCase(), token)
+      } catch {
+        db.prepare("DELETE FROM password_resets WHERE token_hash = ?").run(hashToken(token))
+        // Do not expose account existence or provider details in the response.
+        console.error("Password reset email could not be delivered. Check mail provider configuration.")
+      }
     }
     res.status(202).json({ ok: true })
   })

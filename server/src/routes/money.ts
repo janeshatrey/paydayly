@@ -1,4 +1,4 @@
-import { checkAffordability, salaryCycle, type Category, type CommitmentKind } from "@paydayly/shared"
+import { addDays, checkAffordability, salaryCycle, type Category, type CommitmentKind } from "@paydayly/shared"
 import { Router } from "express"
 import { z } from "zod"
 import type { DB } from "../db"
@@ -72,7 +72,7 @@ export function moneyRoutes(db: DB): Router {
     const input = body(accountSchema, req)
     listAccounts(db, userId)
     const id = newId("ac")
-    const spending = input.kind === "loan" ? false : input.spending
+    const spending = input.kind === "loan" || input.kind === "card" ? false : input.spending
     db.prepare("INSERT INTO accounts (id, user_id, name, kind, spending, is_primary, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)").run(
       id, userId, input.name, input.kind, Number(spending), now(),
     )
@@ -85,7 +85,7 @@ export function moneyRoutes(db: DB): Router {
     const input = body(accountSchema, req)
     const result = db
       .prepare("UPDATE accounts SET name = ?, kind = CASE WHEN is_primary = 1 THEN kind ELSE ? END, spending = ? WHERE id = ? AND user_id = ?")
-      .run(input.name, input.kind, Number(input.spending), String(req.params.id), userId)
+      .run(input.name, input.kind, Number(input.spending && input.kind !== "card" && input.kind !== "loan"), String(req.params.id), userId)
     if (result.changes === 0) throw new HttpError(404, "That account was not found.")
     res.json({ account: listAccounts(db, userId).find((item) => item.id === req.params.id) })
   })
@@ -108,8 +108,9 @@ export function moneyRoutes(db: DB): Router {
     const account = listAccounts(db, userId).find((item) => item.id === req.params.id)
     if (!account) throw new HttpError(404, "That account was not found.")
     const { asOf } = dashboardParts(db, userId)
-    const date = input.date ?? asOf
-    db.prepare("INSERT INTO balance_confirmations (id, user_id, account_id, date, balance_paise, created_at) VALUES (?, ?, ?, ?, ?, ?)").run(
+    const date = input.date ?? addDays(asOf, -1)
+    if (date >= asOf) throw new HttpError(400, "Use a closing balance from a completed day, before today.")
+    db.prepare("INSERT INTO balance_confirmations (id, user_id, account_id, date, balance_paise, created_at, is_closing) VALUES (?, ?, ?, ?, ?, ?, 1)").run(
       newId("bc"), userId, account.id, date, input.balancePaise, now(),
     )
     audit(db, userId, "balance", `Confirmed ${account.name} at ${input.balancePaise} paise on ${date}`)
@@ -123,6 +124,7 @@ export function moneyRoutes(db: DB): Router {
     const input = body(markSchema, req)
     const bill = listCommitments(db, userId).find((item) => item.id === req.params.id)
     if (!bill) throw new HttpError(404, "That bill was not found.")
+    if (input.accountId && !listAccounts(db, userId).some((account) => account.id === input.accountId)) throw new HttpError(400, "That account was not found.")
     const { asOf, settings } = dashboardParts(db, userId)
     const cycle = salaryCycle(asOf, settings.payday)
     let created = null
@@ -178,6 +180,10 @@ export function moneyRoutes(db: DB): Router {
     if (input.txId && !tx) throw new HttpError(404, "That payment was not found.")
     if (tx && tx.direction !== "debit") throw new HttpError(400, "Money owed back has to hang off a payment you made.")
     if (tx && input.amountPaise > tx.amountPaise) throw new HttpError(400, "You cannot be owed more than you paid.")
+    if (tx) {
+      const allocated = (db.prepare("SELECT COALESCE(SUM(amount_paise), 0) AS total FROM receivables WHERE user_id = ? AND tx_id = ? AND status != 'written_off'").get(userId, tx.id) as { total: number }).total
+      if (allocated + input.amountPaise > tx.amountPaise) throw new HttpError(400, "The total owed back cannot exceed the original payment.")
+    }
     const id = newId("rc")
     const { asOf } = dashboardParts(db, userId)
     db.transaction(() => {
@@ -205,6 +211,7 @@ export function moneyRoutes(db: DB): Router {
     if (credit && credit.direction !== "credit") throw new HttpError(400, "Pick the money that came in.")
     if (credit?.receivableId) throw new HttpError(409, "That payment already settles something else.")
     const amount = Math.min(input.amountPaise ?? credit?.amountPaise ?? item.amountPaise - item.settledPaise, item.amountPaise - item.settledPaise)
+    if (amount <= 0 || (credit && (credit.pending || amount > credit.amountPaise))) throw new HttpError(400, "The repayment must be positive and cannot exceed the posted credit.")
     db.transaction(() => {
       if (credit) {
         db.prepare("UPDATE transactions SET receivable_id = ?, category = ?, category_source = 'user', confidence = 1, transfer = 0, refund_of_id = ? WHERE id = ?").run(
@@ -212,6 +219,7 @@ export function moneyRoutes(db: DB): Router {
         )
       }
       const settled = item.settledPaise + amount
+      db.prepare("INSERT INTO settlement_allocations (id, user_id, receivable_id, tx_id, amount_paise) VALUES (?, ?, ?, ?, ?)").run(newId("sa"), userId, item.id, credit?.id ?? null, amount)
       db.prepare("UPDATE receivables SET settled_paise = ?, status = ? WHERE id = ?").run(settled, settled >= item.amountPaise ? "settled" : "open", item.id)
     })()
     audit(db, userId, "receivable", `${item.counterparty} paid back ${amount} paise`)

@@ -132,7 +132,7 @@ const STEPS: Step[] = [
     target: ['[data-tour="import"]'],
     title: { en: "Import your bank statement", hi: "बैंक स्टेटमेंट इम्पोर्ट करें" },
     body: {
-      en: "Upload the CSV, XLS or XLSX statement from any bank. Paydayly finds the transactions, checks them against your balance, skips duplicates, and you can undo any import.",
+      en: "Upload the CSV, XLS or XLSX bank statement and review the detected rows. Paydayly finds the transactions, checks them against your balance, skips duplicates, and you can undo any import.",
       hi: "किसी भी बैंक का CSV, XLS या XLSX स्टेटमेंट अपलोड करें। Paydayly ट्रांज़ैक्शन ढूँढता है, बैलेंस से मिलाता है, डुप्लिकेट छोड़ता है, और किसी भी इम्पोर्ट को वापस ले सकते हैं।",
     },
   },

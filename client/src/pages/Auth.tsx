@@ -190,7 +190,7 @@ export function ForgotPage() {
   return (
     <AuthLayout
       title={t("Reset your password")}
-      subtitle={t("We will send a link that works for 30 minutes.")}
+      subtitle={t("Request a password reset link, valid for 30 minutes.")}
       footer={
         <Link to="/login" className="font-medium text-brand hover:underline">
           {t("Back to log in")}
@@ -199,7 +199,7 @@ export function ForgotPage() {
     >
       {sent ? (
         <p className="rounded-xl bg-brand-soft px-4 py-3 text-[14px]">
-          {t("If an account exists for")} {email}{t(", a reset link is on its way. On a local install the link is printed in the server console.")}
+          {t("If an account exists for")} {email}{t(", a reset link has been requested. Check your inbox and spam folder. If it does not arrive, try again or contact the site owner.")}
         </p>
       ) : (
         <form

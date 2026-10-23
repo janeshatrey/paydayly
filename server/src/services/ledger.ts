@@ -209,7 +209,7 @@ export function listAccounts(db: DB, userId: string): Account[] {
 export function loadContext(db: DB, userId: string): MoneyContext {
   const accounts = listAccounts(db, userId)
   const confirmations = (db
-    .prepare("SELECT account_id, date, balance_paise FROM balance_confirmations WHERE user_id = ? ORDER BY date, created_at")
+    .prepare("SELECT account_id, date, balance_paise FROM balance_confirmations WHERE user_id = ? AND is_closing = 1 ORDER BY date, created_at, rowid")
     .all(userId) as { account_id: string; date: string; balance_paise: number }[])
     .map((row) => ({ accountId: row.account_id, date: row.date, balancePaise: row.balance_paise }))
   const allocations = (db
@@ -282,8 +282,18 @@ export interface NewTransaction {
   ownSharePaise?: number | null
 }
 
-function fingerprintKey(tx: NewTransaction): string {
-  return [tx.date, tx.time, tx.amountPaise, tx.direction, tx.narration.trim().toUpperCase()].join("|")
+export function fingerprintKey(tx: NewTransaction, primary: string): string {
+  return JSON.stringify([tx.accountId || primary, tx.date, tx.time, tx.amountPaise, tx.direction, tx.narration.trim().toUpperCase()])
+}
+
+export function importDuplicateCounts(db: DB, userId: string, primary: string): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const tx of loadTransactions(db, userId)) {
+    if (tx.source !== "import" && tx.source !== "restore") continue
+    const key = fingerprintKey(tx, primary)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return counts
 }
 
 function fingerprint(key: string, occurrence: number): string {
@@ -299,6 +309,8 @@ export function insertTransactions(
 ): { added: Transaction[]; skipped: number; skippedRows: NewTransaction[] } {
   const rules = listRules(db, userId)
   const aliases = listAliases(db, userId)
+  const primary = listAccounts(db, userId).find((account) => account.primary)!.id
+  const existing = importDuplicateCounts(db, userId, primary)
   const insert = db.prepare(`
     INSERT OR IGNORE INTO transactions
       (id, user_id, date, time, amount_paise, direction, narration, merchant, category, category_source,
@@ -312,9 +324,14 @@ export function insertTransactions(
   let skipped = 0
   db.transaction(() => {
     for (const row of rows) {
-      const key = fingerprintKey(row)
+      const key = fingerprintKey(row, primary)
       const occurrence = seen.get(key) ?? 0
       seen.set(key, occurrence + 1)
+      if (source === "import" && occurrence < (existing.get(key) ?? 0)) {
+        skipped += 1
+        skippedRows.push(row)
+        continue
+      }
       const judged = categorise(row.narration, rules)
       const category = row.category ?? judged.category
       const tx: Transaction = {
@@ -341,7 +358,7 @@ export function insertTransactions(
       const fixed = tx.fixedOverride === null ? null : Number(tx.fixedOverride)
       const result = insert.run(
         tx.id, userId, tx.date, tx.time, tx.amountPaise, tx.direction, tx.narration, tx.merchant, tx.category,
-        tx.categorySource, tx.confidence, fixed, tx.transfer ? 1 : 0, tx.oneOff ? 1 : 0, source, source === "manual" ? newId("fp") : fingerprint(key, occurrence), now(),
+        tx.categorySource, tx.confidence, fixed, tx.transfer ? 1 : 0, tx.oneOff ? 1 : 0, source, source === "manual" || source === "import" ? newId("fp") : fingerprint(key, occurrence), now(),
         tx.accountId, tx.counterAccountId, tx.commitmentId, tx.goalId, tx.ownSharePaise, importId,
       )
       if (result.changes === 0) {

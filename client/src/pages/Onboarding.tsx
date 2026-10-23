@@ -349,7 +349,7 @@ function ImportStep({ onBack, onFinish, finishing }: { onBack: () => void; onFin
   const [imported, setImported] = useState<number | null>(null)
   return (
     <div>
-      <StepTitle title={t("Bring in your transactions")} body="Download your statement from net banking (CSV, XLS or XLSX, any bank) and drop it here. Paydayly sorts spends into categories and spots recurring payments." />
+      <StepTitle title={t("Bring in your transactions")} body="Download your statement from net banking (CSV, XLS or XLSX; review before importing) and drop it here. Paydayly sorts spends into categories and spots recurring payments." />
       <Card className="p-6">
         {imported !== null ? (
           <div className="flex items-center gap-3">

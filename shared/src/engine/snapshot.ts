@@ -243,9 +243,9 @@ function leftFromBalance(
   }
   for (const line of account.fixed) {
     if (line.status === "paid" || line.status === "skipped") continue
-    lines.push({ label: line.periodic ? `Setting aside for ${line.name}` : `${line.name}, not paid yet`, paise: -line.reservedPaise, kind: "planned" })
+    lines.push({ label: line.periodic ? `Setting aside for ${line.name}` : `${line.name}, not paid yet`, paise: -Math.max(line.reservedPaise - line.actualPaise, 0), kind: "planned" })
   }
-  const savingsDone = account.savingsLines.reduce((sum, line) => sum + (line.paid ? line.actualPaise : 0), 0)
+  const savingsDone = account.savingsLines.reduce((sum, line) => sum + Math.max(line.actualPaise, 0), 0)
   const savingsLeft = Math.max(account.savingsPaise - savingsDone, 0)
   if (savingsLeft) lines.push({ label: "Savings still to move", paise: -savingsLeft, kind: "planned" })
   const held = context.allocations.filter((item) => item.date <= asOf).reduce((sum, item) => sum + item.amountPaise, 0)
@@ -288,7 +288,7 @@ function buildHeadline(account: CycleAccount, budget: BudgetResult, confirmedLef
   return {
     availablePaise: budget.leftInCyclePaise,
     basis: estimated ? "estimate" : "confirmed",
-    label: estimated ? "Estimate. Confirm your balance for an exact figure" : "From your statement",
+    label: estimated ? "Estimate. Confirm a closing balance and record missing payments" : "From your statement",
     lines,
   }
 }

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import { createApp } from "./app"
 import { openDatabase } from "./db"
 import { aiConfigFromEnv } from "./services/ai"
+import { resetMailerFromEnv } from "./services/mail"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const envFile = path.join(root, ".env")
@@ -40,7 +41,8 @@ const app = createApp(db, {
   authRateLimit: production ? 20 : 200,
   staticDir: path.join(root, "..", "client", "dist"),
   trustProxy: trustProxy(process.env.TRUST_PROXY),
-  logResetLinks: !production || process.env.LOG_RESET_LINKS === "true",
+  logResetLinks: !production && process.env.LOG_RESET_LINKS === "true",
+  onResetToken: resetMailerFromEnv(process.env),
   publicUrl: process.env.PUBLIC_URL,
   ai: aiConfigFromEnv(process.env),
 })

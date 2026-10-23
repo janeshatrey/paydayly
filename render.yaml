@@ -21,6 +21,10 @@ services:
         generateValue: true
       - key: PUBLIC_URL
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: AI_DAILY_LIMIT

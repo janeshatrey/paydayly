@@ -161,7 +161,7 @@ export function AffordPage() {
                 <verdict.icon className={clsx("mt-0.5 size-7 shrink-0", verdict.tone)} />
                 <div>
                   <p className="font-display text-xl font-bold">{t(result.headline)}</p>
-                  {answer?.basis === "estimate" && <p className="mt-1 text-[12px] text-muted">{t("Estimate. Confirm your balance on the dashboard for an exact answer.")}</p>}
+                  {answer?.basis === "estimate" && <p className="mt-1 text-[12px] text-muted">{t("Estimate. Confirm a closing balance and record missing payments before relying on this answer.")}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">

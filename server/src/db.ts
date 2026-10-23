@@ -263,7 +263,55 @@ const migrations: string[] = [
   -- The AI money helper is available whenever the server has a key, so ai_enabled is no longer read (kept so old backups restore).
   ALTER TABLE profiles ADD COLUMN language TEXT NOT NULL DEFAULT 'en';
   `,
+  `
+  -- Legacy UI stored card debt as a negative balance and treated cards as cash.
+  UPDATE balance_confirmations SET balance_paise = ABS(balance_paise)
+    WHERE account_id IN (SELECT id FROM accounts WHERE kind = 'card');
+  UPDATE accounts SET spending = 0 WHERE kind IN ('card', 'loan');
+  -- Old confirmations were intraday values without a timestamp. Preserve them for
+  -- history, but ask users for an unambiguous closing balance before using them.
+  ALTER TABLE balance_confirmations ADD COLUMN is_closing INTEGER NOT NULL DEFAULT 0;
+
+  CREATE TABLE settlement_allocations (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receivable_id TEXT NOT NULL REFERENCES receivables(id) ON DELETE CASCADE,
+    tx_id TEXT REFERENCES transactions(id) ON DELETE CASCADE,
+    amount_paise INTEGER NOT NULL CHECK(amount_paise > 0)
+  );
+  CREATE INDEX settlements_tx ON settlement_allocations(tx_id);
+  CREATE TRIGGER reverse_settlement AFTER DELETE ON settlement_allocations
+  BEGIN
+    UPDATE receivables SET
+      settled_paise = MAX(settled_paise - OLD.amount_paise, 0),
+      status = CASE WHEN status = 'written_off' THEN status
+        WHEN MAX(settled_paise - OLD.amount_paise, 0) >= amount_paise THEN 'settled' ELSE 'open' END
+    WHERE id = OLD.receivable_id AND user_id = OLD.user_id;
+  END;
+  CREATE TRIGGER unlink_deleted_payment AFTER DELETE ON transactions
+  BEGIN
+    UPDATE receivables SET tx_id = NULL WHERE tx_id = OLD.id AND user_id = OLD.user_id;
+    UPDATE transactions SET refund_of_id = NULL WHERE refund_of_id = OLD.id AND user_id = OLD.user_id;
+  END;
+  `,
 ]
+
+/** Old backups have only aggregate settlement totals. Recover linked allocations
+ * conservatively, never allocating more than either the credit or the saved total. */
+export function recoverSettlementAllocations(db: DB): void {
+  const rows = db.prepare(`SELECT t.id, t.user_id, t.receivable_id, t.amount_paise,
+    r.settled_paise - COALESCE((SELECT SUM(a.amount_paise) FROM settlement_allocations a WHERE a.receivable_id = r.id), 0) AS remaining
+    FROM transactions t JOIN receivables r ON r.id = t.receivable_id AND r.user_id = t.user_id
+    WHERE t.direction = 'credit' AND NOT EXISTS (SELECT 1 FROM settlement_allocations a WHERE a.tx_id = t.id)
+    ORDER BY t.date, t.time, t.id`).all() as { id: string; user_id: string; receivable_id: string; amount_paise: number; remaining: number }[]
+  const used = new Map<string, number>()
+  for (const row of rows) {
+    const amount = Math.min(row.amount_paise, row.remaining - (used.get(row.receivable_id) ?? 0))
+    if (amount <= 0) continue
+    db.prepare("INSERT INTO settlement_allocations VALUES (?, ?, ?, ?, ?)").run(`legacy_${row.id}`, row.user_id, row.receivable_id, row.id, amount)
+    used.set(row.receivable_id, (used.get(row.receivable_id) ?? 0) + amount)
+  }
+}
 
 export function migrate(db: DB): void {
   db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
@@ -276,6 +324,7 @@ export function migrate(db: DB): void {
       db.prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString())
     })()
   })
+  db.transaction(() => recoverSettlementAllocations(db))()
 }
 
 export function openDatabase(file: string): DB {

@@ -1,21 +1,23 @@
 import { LogoMark } from "./components/Logo"
 import { Loader2 } from "lucide-react"
-import type { ReactNode } from "react"
+import { lazy, Suspense, type ReactNode } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Toaster } from "sonner"
 import { AppShell } from "./components/AppShell"
 import { useMe } from "./lib/queries"
 import { useTheme } from "./lib/theme"
-import { ActivityPage } from "./pages/Activity"
-import { AffordPage } from "./pages/Afford"
 import { ForgotPage, LoginPage, ResetPage, SignupPage } from "./pages/Auth"
-import { DashboardPage } from "./pages/Dashboard"
-import { GoalsPage } from "./pages/Goals"
 import { LandingPage } from "./pages/Landing"
-import { MonthPage } from "./pages/Month"
 import { NotFoundPage } from "./pages/NotFound"
-import { OnboardingPage } from "./pages/Onboarding"
-import { SettingsPage } from "./pages/Settings"
+const ActivityPage = lazy(() => import("./pages/Activity").then((module) => ({ default: module.ActivityPage })))
+const AffordPage = lazy(() => import("./pages/Afford").then((module) => ({ default: module.AffordPage })))
+const DashboardPage = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.DashboardPage })))
+const GoalsPage = lazy(() => import("./pages/Goals").then((module) => ({ default: module.GoalsPage })))
+const MonthPage = lazy(() => import("./pages/Month").then((module) => ({ default: module.MonthPage })))
+const OnboardingPage = lazy(() => import("./pages/Onboarding").then((module) => ({ default: module.OnboardingPage })))
+const SettingsPage = lazy(() => import("./pages/Settings").then((module) => ({ default: module.SettingsPage })))
+
+const PublicTourPage = lazy(() => import("./pages/PublicTour").then((module) => ({ default: module.PublicTourPage })))
 
 function FullScreenLoader() {
   return (
@@ -48,8 +50,9 @@ export function App() {
   const { resolved } = useTheme()
   return (
     <>
-      <Routes>
+      <Suspense fallback={<FullScreenLoader />}><Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/tour" element={<PublicTourPage />} />
         <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
         <Route path="/signup" element={<GuestOnly><SignupPage /></GuestOnly>} />
         <Route path="/forgot" element={<GuestOnly><ForgotPage /></GuestOnly>} />
@@ -64,7 +67,7 @@ export function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      </Routes></Suspense>
       <Toaster theme={resolved} position="top-center" richColors closeButton toastOptions={{ style: { fontFamily: "var(--font-sans)" } }} />
     </>
   )

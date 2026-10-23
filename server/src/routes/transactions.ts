@@ -7,7 +7,7 @@ import { body, HttpError, isoDate, paise, query } from "../lib/http"
 import { newId, now } from "../lib/ids"
 import { buildDashboard } from "../services/insights"
 import { replayed, respond } from "../lib/idempotency"
-import { applyRule, audit, categoriseRows, getTransaction, insertTransactions, listAccounts, loadSettings, loadTransactions } from "../services/ledger"
+import { applyRule, audit, categoriseRows, fingerprintKey, importDuplicateCounts, getTransaction, insertTransactions, listAccounts, loadSettings, loadTransactions } from "../services/ledger"
 
 const category = z.enum(CATEGORIES)
 const time = z.string().regex(/^\d{2}:\d{2}$/, "Use the format HH:MM")
@@ -67,7 +67,7 @@ const importSchema = previewSchema.extend({
   exclude: z.array(z.number().int()).max(5000).optional(),
 })
 
-const previewWithMapping = previewSchema.extend({ mapping: mappingSchema.optional() })
+const previewWithMapping = previewSchema.extend({ mapping: mappingSchema.optional(), accountId: z.string().max(80).nullable().optional() })
 
 function reviewList(rows: ImportedRow[], judged: { confidence: number; category: string }[]) {
   return rows
@@ -207,8 +207,15 @@ export function transactionRoutes(db: DB): Router {
     const mapping = input.mapping ?? guessMapping(table.headers)
     const parsed = mapping ? applyMapping(table.records, mapping, table.lines) : { rows: [], rejected: [] }
     const judged = categoriseRows(db, userId, parsed.rows)
-    const existing = new Set(loadTransactions(db, userId).map((tx) => `${tx.date}|${tx.amountPaise}|${tx.direction}|${tx.narration.trim().toUpperCase()}`))
-    const duplicates = parsed.rows.filter((row) => existing.has(`${row.date}|${row.amountPaise}|${row.direction}|${row.narration.trim().toUpperCase()}`)).length
+    checkLinks(userId, input)
+    const primary = listAccounts(db, userId).find((account) => account.primary)!.id
+    const existing = importDuplicateCounts(db, userId, primary)
+    const duplicates = parsed.rows.filter((row) => {
+      const key = fingerprintKey({ ...row, accountId: input.accountId }, primary)
+      const left = existing.get(key) ?? 0
+      existing.set(key, Math.max(left - 1, 0))
+      return left > 0
+    }).length
     res.json({
       headers: table.headers,
       mapping,

@@ -1,6 +1,6 @@
 import { t } from "../lib/i18n"
 import { DateInput } from "./DateInput"
-import { formatDate, formatINR, parseRupeeInput, type Snapshot } from "@paydayly/shared"
+import { addDays, formatDate, formatINR, parseRupeeInput, type Snapshot } from "@paydayly/shared"
 import clsx from "clsx"
 import { Check, ChevronDown, HandCoins, Landmark, Loader2, MessageSquareText, SkipForward, Sparkles, Undo2 } from "lucide-react"
 import { useState } from "react"
@@ -66,12 +66,12 @@ export function ConfirmBalanceDialog({ open, onClose, data }: { open: boolean; o
     event.preventDefault()
     const paise = parseRupeeInput(amount)
     if (paise === null) {
-      toast.error(t("Enter the balance your bank app shows."))
+      toast.error(t("Enter yesterday's closing balance from your statement."))
       return
     }
     setBusy(true)
     try {
-      await api.post(`/accounts/${accountId}/confirm`, { balancePaise: account?.kind === "card" ? -Math.abs(paise) : paise })
+      await api.post(`/accounts/${accountId}/confirm`, { balancePaise: paise, date: addDays(data.snapshot.asOf, -1) })
       await refresh()
       toast.success(t("Balance confirmed. Figures now start from it."))
       setAmount("")
@@ -84,7 +84,7 @@ export function ConfirmBalanceDialog({ open, onClose, data }: { open: boolean; o
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t("Confirm your balance")} description={t("Optional. Type what your bank app shows right now and Paydayly will work from real money instead of an estimate.")}>
+    <Modal open={open} onClose={onClose} title={t("Confirm your balance")} description={t("Use yesterday's closing balance from your bank statement, not your current balance. Today's recorded payments are applied automatically.")}>
       <form onSubmit={submit} className="space-y-4">
         {spending.length > 1 && (
           <Field label={t("Account")}>
@@ -97,7 +97,7 @@ export function ConfirmBalanceDialog({ open, onClose, data }: { open: boolean; o
             </Select>
           </Field>
         )}
-        <Field label={account?.kind === "card" ? t("Amount you owe on the card") : t("Balance today")} hint={t("Payments already in Paydayly after today are added on top automatically.")}>
+        <Field label={`${account?.kind === "card" ? t("Card debt at close") : t("Closing balance")} · ${formatDate(addDays(data.snapshot.asOf, -1))}`} hint={t("For cards, enter debt as positive; a credit balance is negative.")}>
           <Input prefix="₹" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0" autoFocus />
         </Field>
         <div className="flex justify-end gap-2">

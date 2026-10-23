@@ -79,7 +79,7 @@ export function DashboardPage() {
             <EmptyState
               icon={FileUp}
               title={t("No transactions yet")}
-              body="Import a statement from any bank (CSV, XLS or XLSX), or add today's spends by hand. Charts, recurring payments and alerts appear as soon as there is data."
+              body="Import a bank statement (CSV, XLS or XLSX; review before importing), or add today's spends by hand. Charts, recurring payments and alerts appear as soon as there is data."
               action={
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button icon={FileUp} onClick={shell.openImport}>
@@ -176,7 +176,7 @@ function Hero({ data }: { data: Dashboard }) {
           </div>
           {!snapshot.confirmed && data.accounts.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-[13px]">
-              <span className="flex-1 text-white/80">{t("Want an exact figure? Confirm what your bank app shows.")}</span>
+              <span className="flex-1 text-white/80">{t("Confirm yesterday's closing balance and keep your payments up to date.")}</span>
               <button onClick={() => setConfirming(true)} className="rounded-xl bg-white px-3 py-1.5 text-[13px] font-semibold text-[#0b1f33] hover:bg-white/90">
                 {t("Confirm balance")}
               </button>
