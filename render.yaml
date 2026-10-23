@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: paydayly
+    runtime: node
+    plan: free
+    buildCommand: bash scripts/build-render.sh
+    startCommand: bash scripts/start-render.sh
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PAYDAYLY_DATA_DIR
+        value: /tmp/data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PUBLIC_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: AI_DAILY_LIMIT
+        value: "15"
+      - key: B2_BUCKET
+        sync: false
+      - key: B2_ENDPOINT
+        sync: false
+      - key: B2_REGION
+        sync: false
+      - key: LITESTREAM_ACCESS_KEY_ID
+        sync: false
+      - key: LITESTREAM_SECRET_ACCESS_KEY
+        sync: false
