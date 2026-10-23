@@ -60,6 +60,12 @@ export function createApp(db: DB, config: AppConfig) {
 
   if (config.staticDir && fs.existsSync(config.staticDir)) {
     const dir = config.staticDir
+    // Digital Asset Links for the Android app (dot-directories are skipped by default).
+    app.use("/.well-known", express.static(path.join(dir, ".well-known"), { dotfiles: "allow", maxAge: 0 }))
+    app.get("/sw.js", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache")
+      res.sendFile(path.join(dir, "sw.js"))
+    })
     app.use(express.static(dir, { index: false, maxAge: "1h" }))
     app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dir, "index.html")))
   }
